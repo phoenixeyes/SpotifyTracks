@@ -121,7 +121,7 @@
 -(void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName attributes:(NSDictionary *)attributeDict
 {
 //	NSLog(@"elementName: %@", elementName);
-	
+
 	if ([elementName isEqualToString:@"track"])
 	{
 		self.currentAttribute = elementName;
@@ -135,12 +135,26 @@
 		self.currentAttribute = elementName;
 		return;
 	}
+	
+	if ([elementName isEqualToString:@"album"])
+	{
+		self.currentAttribute = elementName;
+		return;
+	}
+
 }
 
 -(void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qName
 {
 //	NSLog(@"%@", self.charactersSoFar);
 	NSString *smallerString = [self.charactersSoFar stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+	// Ignore empty and non important elements
+	if ([elementName isEqualToString:@"tracks"] || [elementName isEqualToString:@"id"] || [elementName isEqualToString:@"opensearch:Query"] || [elementName isEqualToString:@"opensearch:totalResults"] || [elementName isEqualToString:@"opensearch:startIndex"])
+	{
+		self.charactersSoFar = nil;
+		return;
+	}
 	
 	if ([elementName isEqualToString:@"track"])
 	{
@@ -152,27 +166,30 @@
 		{
 			[[self.tracksDictionary objectForKey:self.currentTrack.artistName] addObject:self.currentTrack];
 		}
+		self.currentAttribute = nil;
 	}
 	
+	if ([elementName isEqualToString:@"artist"] || [elementName isEqualToString:@"album"])
+	{
+		self.currentAttribute = @"track";
+	}
+
 	if ([elementName isEqualToString:@"name"])
 	{
 		if ([self.currentAttribute isEqualToString:@"track"])
 		{
 			self.currentTrack.name = smallerString;
-			return;
 		}
 		
 		if ([self.currentAttribute isEqualToString:@"artist"])
 		{
 			self.currentTrack.artistName = smallerString;
-			return;
 		}
-	}
-	
-	if ([elementName isEqualToString:@"artist"])
-	{
-		self.currentTrack.artistName = smallerString;
-		return;
+		
+		if ([self.currentAttribute isEqualToString:@"album"])
+		{
+			self.currentTrack.albumName = smallerString;
+		}
 	}
 
 	// Reset accumulated element characters once an element finished
